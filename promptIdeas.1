@@ -1,1 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImprovAIse Scene Partner</title>
+</head>
+<body>
+    <button id="suggestionButton">Get Suggestion</button>
+    <label>
+        User Initiates
+        <input type="radio" name="initiator" value="user" checked>
+    </label>
+    <label>
+        ImprovAIse Initiates
+        <input type="radio" name="initiator" value="improvAIse">
+    </label>
+    <br><br>
+    <textarea id="userInput" placeholder="Enter your line here..."></textarea>
+    <button id="sendButton">Send</button>
+    <div id="chat"></div>
+
+    <script>
+        const prompts = [];
+        let selectedPrompt = '';
+        let chatLog = '';
+
+        // Fetch prompts from the CSV file on GitHub
+        fetch('https://raw.githubusercontent.com/TerrTerr/PromptExercises/main/Prompts.csv')
+            .then(response => response.text())
+            .then(data => {
+                const rows = data.split('\n');
+                rows.forEach(row => {
+                    prompts.push(row.split(',')[0]); // Assuming prompts are in the first column
+                });
+            });
+
+        // Handle suggestion button click
+        document.getElementById('suggestionButton').addEventListener('click', () => {
+            selectedPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+            document.getElementById('chat').innerText = `Prompt: ${selectedPrompt}`;
+            
+            if (document.querySelector('input[name="initiator"]:checked').value === 'improvAIse') {
+                initiateImprovAIse();
+            }
+        });
+
+        // Handle send button click
+        document.getElementById('sendButton').addEventListener('click', () => {
+            const userInput = document.getElementById('userInput').value;
+            if (userInput.trim() === '') return;
+            addToChat('USER', userInput);
+            respondImprovAIse(userInput);
+        });
+
+        function initiateImprovAIse() {
+            const promptText = `ACT LIKE an improviser acting in an improv scene... This is the prompt: ${selectedPrompt}`;
+            generateImprovLine(promptText).then(improvLine => {
+                addToChat('ImprovAIse', improvLine);
+            });
+        }
+
+        function respondImprovAIse(userInput) {
+            const promptText = `ACT LIKE an improviser acting in an improv scene... This was the prompt: ${selectedPrompt} and this was the USER's first line: ${userInput}`;
+            generateImprovLine(promptText).then(improvLine => {
+                addToChat('ImprovAIse', improvLine);
+            });
+        }
+
+        function generateImprovLine(prompt) {
+            return fetch('https://improvaise-3point5-turbo.glitch.me/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ prompt: prompt })
+            })
+            .then(response => response.json())
+            .then(data => data.response) // Assuming your Glitch API returns { response: "..." }
+            .catch(error => {
+                console.error('Error:', error);
+                return `_*(improvises)*_ "I got stuck for a moment, but let's keep going."`;
+            });
+        }
+
+        function addToChat(speaker, text) {
+            chatLog += `**${speaker}**: ${text}\n\n`;
+            document.getElementById('chat').innerText = chatLog;
+        }
+    </script>
+</body>
+</html>
 
